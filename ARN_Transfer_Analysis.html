@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARN Transfer AUM — Business Analysis Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+:root {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --header-bg: #0f2044;
+  --accent: #1a56db;
+  --accent2: #16a34a;
+  --accent3: #dc2626;
+  --accent4: #d97706;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --green: #16a34a;
+  --red: #dc2626;
+  --gap: 16px;
+  --radius: 10px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:var(--bg); color:var(--text); font-size:14px; }
+.wrap { max-width:1380px; margin:0 auto; padding:20px var(--gap); }
+
+/* HEADER */
+.hdr { background:var(--header-bg); color:#fff; border-radius:var(--radius); padding:20px 28px; margin-bottom:var(--gap); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.hdr h1 { font-size:19px; font-weight:700; letter-spacing:-0.3px; }
+.hdr .sub { font-size:12px; color:rgba(255,255,255,0.55); margin-top:3px; }
+.hdr .badge { background:rgba(255,255,255,0.12); border-radius:20px; padding:4px 14px; font-size:12px; }
+
+/* INSIGHT BANNER */
+.insight { background:linear-gradient(135deg,#1e3a5f,#1a56db); color:#fff; border-radius:var(--radius); padding:16px 24px; margin-bottom:var(--gap); font-size:13px; line-height:1.7; }
+.insight strong { font-weight:700; }
+.insight .tag { display:inline-block; background:rgba(255,255,255,0.18); border-radius:12px; padding:1px 10px; margin:0 2px; font-size:11px; }
+
+/* KPI ROW */
+.kpi-row { display:grid; grid-template-columns:repeat(5,1fr); gap:var(--gap); margin-bottom:var(--gap); }
+.kpi { background:var(--card); border-radius:var(--radius); padding:18px 20px; box-shadow:0 1px 4px rgba(0,0,0,0.07); border-left:4px solid transparent; }
+.kpi.blue  { border-color:#1a56db; }
+.kpi.green { border-color:#16a34a; }
+.kpi.red   { border-color:#dc2626; }
+.kpi.amber { border-color:#d97706; }
+.kpi.purple{ border-color:#7c3aed; }
+.kpi-lbl { font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--muted); margin-bottom:4px; }
+.kpi-val { font-size:26px; font-weight:800; line-height:1.1; }
+.kpi-sub { font-size:12px; color:var(--muted); margin-top:4px; }
+.pos { color:var(--green); font-weight:600; }
+.neg { color:var(--red); font-weight:600; }
+
+/* SECTION LABEL */
+.sec-lbl { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); margin-bottom:10px; }
+
+/* CHART ROW */
+.chart-row { display:grid; gap:var(--gap); margin-bottom:var(--gap); }
+.chart-row-2 { grid-template-columns:1fr 1fr; }
+.chart-row-3 { grid-template-columns:2fr 1fr; }
+.chart-box { background:var(--card); border-radius:var(--radius); padding:20px 22px; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+.chart-box h3 { font-size:13px; font-weight:700; margin-bottom:4px; }
+.chart-box .ch-sub { font-size:11px; color:var(--muted); margin-bottom:14px; }
+.chart-box canvas { max-height:280px; }
+
+/* TABLE */
+.tbl-box { background:var(--card); border-radius:var(--radius); padding:20px 22px; box-shadow:0 1px 4px rgba(0,0,0,0.07); margin-bottom:var(--gap); overflow-x:auto; }
+.tbl-box h3 { font-size:13px; font-weight:700; margin-bottom:4px; }
+.tbl-box .ch-sub { font-size:11px; color:var(--muted); margin-bottom:14px; }
+table { width:100%; border-collapse:collapse; font-size:12.5px; }
+thead th { text-align:left; padding:9px 12px; border-bottom:2px solid var(--border); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:0.5px; cursor:pointer; white-space:nowrap; user-select:none; }
+thead th:hover { color:var(--text); }
+tbody td { padding:9px 12px; border-bottom:1px solid #f4f4f6; }
+tbody tr:last-child td { border:none; }
+tbody tr:hover { background:#fafbfd; }
+.bar-cell { display:flex; align-items:center; gap:8px; }
+.mini-bar { height:8px; border-radius:4px; background:#1a56db33; position:relative; min-width:40px; }
+.mini-bar-fill { height:100%; border-radius:4px; background:#1a56db; }
+.rank { width:22px; height:22px; border-radius:50%; background:#1a56db; color:#fff; font-size:10px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+.flag-positive { color:var(--green); }
+.flag-negative { color:var(--red); }
+.flag-neutral { color:var(--muted); }
+
+/* PERIOD TABLE */
+.period-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--gap); margin-bottom:var(--gap); }
+.period-card { background:var(--card); border-radius:var(--radius); padding:16px 18px; box-shadow:0 1px 4px rgba(0,0,0,0.07); }
+.period-card .p-lbl { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; }
+.period-card .p-val { font-size:21px; font-weight:800; margin:4px 0; }
+.period-card .p-sub { font-size:11px; color:var(--muted); }
+.period-card .p-badge { margin-top:6px; font-size:11px; font-weight:600; }
+
+/* FOOTER */
+.footer { text-align:center; font-size:11px; color:var(--muted); padding:16px 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div>
+      <div class="h1" style="font-size:19px;font-weight:700;">ARN Transfer AUM — Business Intelligence Dashboard</div>
+      <div class="sub">CAMS + Karvy RTA | Jul 2024 – Jun 2026 | 79 ML-RM Pairs | Data as of 23 Jun 2026</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span class="badge">✦ Firm Net AUM: ₹1,193.9 Cr</span>
+      <span class="badge">✦ 22 Active Months</span>
+    </div>
+  </div>
+
+  <!-- INSIGHT BANNER -->
+  <div class="insight">
+    <strong>Executive Summary:</strong> The firm transferred in <strong>₹1,238 Cr</strong> of AUM over 22 months with a best-in-class
+    <span class="tag">3.6% churn rate</span>. Net AUM growth is <strong>accelerating each half-year</strong> — from ₹113 Cr in H2-2024 to ₹418 Cr in H1-2026 (+270% in 18 months).
+    <strong>Vishal Khanna's team</strong> alone accounts for 24% of firm net AUM (₹288 Cr, 6 RMs).
+    Forward trail income is projected at <strong>₹5.5 Cr/year</strong>, growing to ₹68 L/month by Jun-27 as pre-Aug-25 cohorts mature.
+    <strong>Key risk:</strong> Top 10 RMs drive 58% of net AUM — high concentration that warrants portfolio risk review.
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi blue">
+      <div class="kpi-lbl">Total Transfer In</div>
+      <div class="kpi-val">₹1,238 Cr</div>
+      <div class="kpi-sub">CAMS ₹775 Cr · Karvy ₹463 Cr</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-lbl">Net AUM Acquired</div>
+      <div class="kpi-val">₹1,194 Cr</div>
+      <div class="kpi-sub pos">↑ 270% H2-24 → H1-26</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-lbl">Transfer Out (Churn)</div>
+      <div class="kpi-val">₹44 Cr</div>
+      <div class="kpi-sub">3.6% churn rate — excellent</div>
+    </div>
+    <div class="kpi purple">
+      <div class="kpi-lbl">Fwd Trail (Annual)</div>
+      <div class="kpi-val">₹5.51 Cr</div>
+      <div class="kpi-sub">Grows to ₹68 L/mo by Jun-27</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-lbl">Active RMs (H1-26)</div>
+      <div class="kpi-val">58 / 79</div>
+      <div class="kpi-sub pos">↑ from 21 in H2-2024</div>
+    </div>
+  </div>
+
+  <!-- HALF-YEAR GROWTH -->
+  <div class="sec-lbl">Half-Year Growth Trajectory</div>
+  <div class="period-grid">
+    <div class="period-card">
+      <div class="p-lbl">H2 2024 · Jul–Dec</div>
+      <div class="p-val" style="color:#64748b;">₹112.6 Cr</div>
+      <div class="p-sub">TI ₹114.6 Cr · TO ₹2.0 Cr</div>
+      <div class="p-badge flag-neutral">Baseline</div>
+    </div>
+    <div class="period-card">
+      <div class="p-lbl">H1 2025 · Jan–Jun</div>
+      <div class="p-val" style="color:#d97706;">₹297.4 Cr</div>
+      <div class="p-sub">TI ₹305.5 Cr · TO ₹8.1 Cr</div>
+      <div class="p-badge pos">+164% vs H2-24</div>
+    </div>
+    <div class="period-card">
+      <div class="p-lbl">H2 2025 · Jul–Dec</div>
+      <div class="p-val" style="color:#1a56db;">₹366.1 Cr</div>
+      <div class="p-sub">TI ₹378.3 Cr · TO ₹12.2 Cr</div>
+      <div class="p-badge pos">+23% vs H1-25</div>
+    </div>
+    <div class="period-card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);">
+      <div class="p-lbl">H1 2026 · Jan–Jun</div>
+      <div class="p-val" style="color:#16a34a;">₹417.8 Cr</div>
+      <div class="p-sub">TI ₹439.6 Cr · TO ₹21.8 Cr</div>
+      <div class="p-badge pos">+14% vs H2-25 · Best half</div>
+    </div>
+  </div>
+
+  <!-- MONTHLY TREND + ML PIE -->
+  <div class="chart-row chart-row-3" style="margin-bottom:var(--gap);">
+    <div class="chart-box">
+      <h3>Monthly Transfer In vs Out (₹ Crores)</h3>
+      <div class="ch-sub">Net AUM accumulation by month — strong acceleration from Apr-25 onward</div>
+      <canvas id="monthlyChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>ML Share of Net AUM (Top 8)</h3>
+      <div class="ch-sub">% of firm net AUM by Market Leader</div>
+      <canvas id="mlPieChart"></canvas>
+    </div>
+  </div>
+
+  <!-- TRAIL INCOME RUNWAY -->
+  <div class="chart-row chart-row-2" style="margin-bottom:var(--gap);">
+    <div class="chart-box">
+      <h3>Trail Income Runway: Realized → Forward (₹ Lakhs/month)</h3>
+      <div class="ch-sub">Monthly trail income earned — realized up to Jun-26, projected Jul-26 to Jun-27</div>
+      <canvas id="trailChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>RM Activation Growth (Active RMs per Half-Year)</h3>
+      <div class="ch-sub">Number of RMs with at least 1 Transfer In in the period</div>
+      <canvas id="rmGrowthChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ML LEADERBOARD TABLE -->
+  <div class="tbl-box">
+    <h3>Market Leader Performance Scorecard</h3>
+    <div class="ch-sub">All 22 MLs ranked by Net AUM transferred in. Click column headers to sort.</div>
+    <table id="mlTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable('mlTable',0,'str')">#</th>
+          <th onclick="sortTable('mlTable',1,'str')">Market Leader ↕</th>
+          <th onclick="sortTable('mlTable',2,'num')">Net AUM (₹Cr) ↕</th>
+          <th onclick="sortTable('mlTable',3,'num')">Transfer In (₹Cr) ↕</th>
+          <th onclick="sortTable('mlTable',4,'num')">Transfer Out (₹Cr) ↕</th>
+          <th onclick="sortTable('mlTable',5,'num')">Churn % ↕</th>
+          <th onclick="sortTable('mlTable',6,'num')">Active RMs ↕</th>
+          <th onclick="sortTable('mlTable',7,'num')">Fwd Trail (₹L/yr) ↕</th>
+          <th>Signal</th>
+        </tr>
+      </thead>
+      <tbody id="mlTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- TOP RM PAIRS TABLE -->
+  <div class="tbl-box">
+    <h3>Top 20 RM Pairs by Net AUM</h3>
+    <div class="ch-sub">Individual RM performance — net AUM transferred in since Jul-2024.</div>
+    <table id="rmTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th onclick="sortTable('rmTable',1,'str')">Market Leader ↕</th>
+          <th onclick="sortTable('rmTable',2,'str')">Relationship Manager ↕</th>
+          <th onclick="sortTable('rmTable',3,'num')">Net AUM (₹Cr) ↕</th>
+          <th onclick="sortTable('rmTable',4,'num')">Transfer In ↕</th>
+          <th onclick="sortTable('rmTable',5,'num')">Transfer Out ↕</th>
+          <th onclick="sortTable('rmTable',6,'num')">Fwd Trail (₹L/yr) ↕</th>
+          <th>Net AUM Bar</th>
+        </tr>
+      </thead>
+      <tbody id="rmTableBody"></tbody>
+    </table>
+  </div>
+
+  <!-- FORWARD TRAIL BY ML TABLE -->
+  <div class="tbl-box">
+    <h3>Forward Trail Income Projection by ML (Jul-26 → Jun-27)</h3>
+    <div class="ch-sub">Annual trail income projected from existing transferred AUM — assumes flat AUM, no new transfers or redemptions.</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Market Leader</th>
+          <th>Forward Trail (₹ Lakhs/yr)</th>
+          <th>Share of Total Trail %</th>
+          <th>Trail Run-Rate Bar</th>
+        </tr>
+      </thead>
+      <tbody id="trailTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="footer">ARN-306165 · Net AUM Transfer Analysis · CAMS + Karvy RTA · Data through Jun 2026 · For internal use only</div>
+</div>
+
+<script>
+// ── EMBEDDED DATA ────────────────────────────────────────────────────────────
+
+const MONTHLY = [
+  {m:"Jul-24", ti:2.79,  to:0.00, net:2.79},
+  {m:"Aug-24", ti:0.96,  to:0.00, net:0.96},
+  {m:"Sep-24", ti:30.90, to:0.00, net:30.90},
+  {m:"Oct-24", ti:25.12, to:1.82, net:23.30},
+  {m:"Nov-24", ti:17.31, to:0.00, net:17.31},
+  {m:"Dec-24", ti:37.53, to:0.14, net:37.38},
+  {m:"Jan-25", ti:46.41, to:2.82, net:43.59},
+  {m:"Feb-25", ti:16.62, to:0.05, net:16.56},
+  {m:"Mar-25", ti:47.24, to:0.37, net:46.86},
+  {m:"Apr-25", ti:115.28,to:1.39, net:113.89},
+  {m:"May-25", ti:52.75, to:2.16, net:50.59},
+  {m:"Jun-25", ti:27.23, to:1.32, net:25.91},
+  {m:"Jul-25", ti:71.38, to:0.04, net:71.33},
+  {m:"Aug-25", ti:46.20, to:1.88, net:44.32},
+  {m:"Sep-25", ti:76.06, to:2.21, net:73.85},
+  {m:"Oct-25", ti:58.49, to:3.56, net:54.93},
+  {m:"Nov-25", ti:75.85, to:0.23, net:75.62},
+  {m:"Dec-25", ti:50.30, to:4.30, net:46.00},
+  {m:"Jan-26", ti:80.04, to:0.37, net:79.67},
+  {m:"Feb-26", ti:34.15, to:1.70, net:32.44},
+  {m:"Mar-26", ti:37.21, to:0.93, net:36.28},
+  {m:"Apr-26", ti:135.13,to:1.41, net:133.72},
+  {m:"May-26", ti:131.54,to:17.42,net:114.12},
+  {m:"Jun-26", ti:21.58, to:0.00, net:21.58},
+];
+
+const ML_DATA = [
+  {ml:"Vishal Khanna",         net:288.02, ti:294.42, to:6.40,  rms:6,  trail:173.2},
+  {ml:"Rohit Suri",            net:191.32, ti:191.32, to:0.00,  rms:3,  trail:26.5},
+  {ml:"Madhup Patet",          net:123.18, ti:127.92, to:4.74,  rms:11, trail:61.4},
+  {ml:"Sudipto Sinha",         net:108.83, ti:110.56, to:1.72,  rms:5,  trail:47.3},
+  {ml:"Abhishek kumar",        net:105.01, ti:105.07, to:0.06,  rms:4,  trail:39.0},
+  {ml:"Nayanish Prabhu",       net:64.42,  ti:65.96,  to:1.54,  rms:8,  trail:27.7},
+  {ml:"Ajay Bhute",            net:54.20,  ti:58.79,  to:4.59,  rms:2,  trail:36.3},
+  {ml:"Vijay Krishna Chinni",  net:44.04,  ti:44.94,  to:0.89,  rms:7,  trail:21.3},
+  {ml:"Harsh Bagai",           net:38.07,  ti:38.30,  to:0.23,  rms:2,  trail:25.2},
+  {ml:"Dhiren Shah",           net:37.76,  ti:38.24,  to:0.48,  rms:6,  trail:23.4},
+  {ml:"Abhishek Sharma",       net:36.79,  ti:43.79,  to:7.00,  rms:4,  trail:25.1},
+  {ml:"Unallocated",           net:26.22,  ti:26.39,  to:0.17,  rms:1,  trail:10.7},
+  {ml:"Prerna Lotlikar",       net:26.09,  ti:26.09,  to:0.00,  rms:1,  trail:8.2},
+  {ml:"Vishal Rakyan",         net:21.97,  ti:21.97,  to:0.00,  rms:6,  trail:6.8},
+  {ml:"Ajay Sehgal",           net:20.20,  ti:20.21,  to:0.01,  rms:3,  trail:13.9},
+  {ml:"Srinivasa Prasanna",    net:17.84,  ti:17.84,  to:0.00,  rms:3,  trail:2.8},
+  {ml:"Arnab Bhattacharjee",   net:2.02,   ti:2.02,   to:0.00,  rms:1,  trail:0.7},
+  {ml:"Parth Shah",            net:0.85,   ti:0.85,   to:0.00,  rms:1,  trail:0.2},
+  {ml:"Tarang Maheshwari",     net:0.81,   ti:0.81,   to:0.00,  rms:1,  trail:0.1},
+  {ml:"Chinmay Chetan",        net:0.15,   ti:0.19,   to:0.04,  rms:1,  trail:0.1},
+  {ml:"Mayank",                net:0.00,   ti:0.00,   to:0.00,  rms:1,  trail:0.0},
+  {ml:"Unallocated ML",        net:-13.87, ti:2.38,   to:16.26, rms:2,  trail:1.4},
+];
+
+const RM_TOP20 = [
+  {ml:"Rohit Suri",           rm:"Nishant Bhatia",         net:171.64, ti:171.64, to:0.00,  trail:24.46},
+  {ml:"Vishal Khanna",        rm:"Saurabh Pandey",         net:111.99, ti:113.03, to:1.05,  trail:70.45},
+  {ml:"Vishal Khanna",        rm:"Pratyaksha Gupta",       net:83.27,  ti:83.38,  to:0.11,  trail:49.09},
+  {ml:"Sudipto Sinha",        rm:"Tarang Maheshwari",      net:77.93,  ti:78.52,  to:0.59,  trail:31.66},
+  {ml:"Abhishek kumar",       rm:"Mani Sawhney",           net:73.27,  ti:73.30,  to:0.02,  trail:28.96},
+  {ml:"Vishal Khanna",        rm:"Ishan Mishra",           net:48.02,  ti:48.02,  to:0.00,  trail:26.55},
+  {ml:"Ajay Bhute",           rm:"Parth Shah",             net:34.84,  ti:34.84,  to:0.00,  trail:19.60},
+  {ml:"Vishal Khanna",        rm:"Prateek Chhabra",        net:34.51,  ti:34.65,  to:0.14,  trail:17.89},
+  {ml:"Harsh Bagai",          rm:"Tahir Jamal",            net:31.43,  ti:31.43,  to:0.00,  trail:20.22},
+  {ml:"Nayanish Prabhu",      rm:"Manish Tahalyani",       net:26.26,  ti:26.33,  to:0.07,  trail:14.04},
+  {ml:"Unallocated",          rm:"Unallocated",            net:26.22,  ti:26.39,  to:0.17,  trail:10.70},
+  {ml:"Prerna Lotlikar",      rm:"Palash Chaturvedi",      net:26.09,  ti:26.09,  to:0.00,  trail:8.18},
+  {ml:"Abhishek kumar",       rm:"Abhinav Ratan",          net:24.47,  ti:24.47,  to:0.00,  trail:8.03},
+  {ml:"Dhiren Shah",          rm:"Shekhar Kilche",         net:23.26,  ti:23.26,  to:0.00,  trail:14.42},
+  {ml:"Ajay Bhute",           rm:"Dishant Doshi",          net:19.36,  ti:23.95,  to:4.59,  trail:16.73},
+  {ml:"Madhup Patet",         rm:"Tatavarthylakshmi",      net:19.29,  ti:19.72,  to:0.43,  trail:10.09},
+  {ml:"Rohit Suri",           rm:"Siddharth Chauhan",      net:18.78,  ti:18.78,  to:0.00,  trail:1.90},
+  {ml:"Vijay Krishna Chinni", rm:"Siddharth Gupta",        net:18.08,  ti:18.08,  to:0.00,  trail:9.18},
+  {ml:"Sudipto Sinha",        rm:"Prerna Lotlikar",        net:17.88,  ti:17.88,  to:0.00,  trail:6.06},
+  {ml:"Abhishek Sharma",      rm:"Saurabh Gupta",          net:17.73,  ti:19.92,  to:2.19,  trail:10.24},
+];
+
+const TRAIL_REALIZED = [
+  {m:"Jan-25", v:0.14}, {m:"Feb-25", v:0.20}, {m:"Mar-25", v:1.75},
+  {m:"Apr-25", v:3.14}, {m:"May-25", v:4.18}, {m:"Jun-25", v:6.39},
+  {m:"Jul-25", v:8.92}, {m:"Aug-25", v:9.89}, {m:"Sep-25", v:12.86},
+  {m:"Oct-25", v:19.11},{m:"Nov-25", v:22.07},{m:"Dec-25", v:23.51},
+  {m:"Jan-26", v:26.77},{m:"Feb-26", v:26.77},{m:"Mar-26", v:26.77},
+  {m:"Apr-26", v:26.77},{m:"May-26", v:26.77},{m:"Jun-26", v:26.77},
+];
+
+const TRAIL_FORWARD = [
+  {m:"Jul-26", v:26.77},{m:"Aug-26", v:28.85},{m:"Sep-26", v:33.02},
+  {m:"Oct-26", v:36.10},{m:"Nov-26", v:40.33},{m:"Dec-26", v:43.18},
+  {m:"Jan-27", v:47.81},{m:"Feb-27", v:49.53},{m:"Mar-27", v:51.73},
+  {m:"Apr-27", v:59.17},{m:"May-27", v:66.84},{m:"Jun-27", v:68.04},
+];
+
+const RM_GROWTH = [
+  {p:"H2-2024", rms:21}, {p:"H1-2025", rms:42},
+  {p:"H2-2025", rms:53}, {p:"H1-2026", rms:58},
+];
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+
+const COLS = ["#1a56db","#16a34a","#dc2626","#d97706","#7c3aed","#0891b2","#db2777","#65a30d"];
+
+// Monthly TI vs TO vs Net
+(function(){
+  const ctx = document.getElementById("monthlyChart").getContext("2d");
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: MONTHLY.map(d=>d.m),
+      datasets: [
+        { label:"Transfer In", data:MONTHLY.map(d=>d.ti), backgroundColor:"#1a56db55", borderColor:"#1a56db", borderWidth:1, borderRadius:3, order:2 },
+        { label:"Transfer Out", data:MONTHLY.map(d=>d.to), backgroundColor:"#dc262655", borderColor:"#dc2626", borderWidth:1, borderRadius:3, order:2 },
+        { label:"Net AUM", data:MONTHLY.map(d=>d.net), type:"line", borderColor:"#16a34a", backgroundColor:"#16a34a15", borderWidth:2.5, tension:0.3, pointRadius:3, fill:true, order:1 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:"index", intersect:false},
+      plugins:{legend:{position:"top",labels:{usePointStyle:true,padding:16,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ₹${c.parsed.y.toFixed(1)} Cr`}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:45}},
+        y:{beginAtZero:true,ticks:{callback:v=>`₹${v}Cr`,font:{size:10}},grid:{color:"#f0f0f4"}}
+      }
+    }
+  });
+})();
+
+// ML Pie
+(function(){
+  const ctx = document.getElementById("mlPieChart").getContext("2d");
+  const top8 = ML_DATA.filter(d=>d.net>0).slice(0,8);
+  const others = ML_DATA.filter(d=>d.net>0).slice(8).reduce((s,d)=>s+d.net,0);
+  const labels = [...top8.map(d=>d.ml), "Others"];
+  const vals   = [...top8.map(d=>d.net), others];
+  new Chart(ctx, {
+    type:"doughnut",
+    data:{labels, datasets:[{data:vals, backgroundColor:COLS.map(c=>c+"cc"), borderColor:"#fff", borderWidth:2}]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:"58%",
+      plugins:{
+        legend:{position:"right",labels:{font:{size:10},padding:10,usePointStyle:true}},
+        tooltip:{callbacks:{label:c=>{
+          const t=c.dataset.data.reduce((a,b)=>a+b,0);
+          return `${c.label}: ₹${c.parsed.toFixed(1)}Cr (${(c.parsed/t*100).toFixed(1)}%)`;
+        }}}
+      }
+    }
+  });
+})();
+
+// Trail runway
+(function(){
+  const ctx = document.getElementById("trailChart").getContext("2d");
+  const allMonths = [...TRAIL_REALIZED.map(d=>d.m), ...TRAIL_FORWARD.map(d=>d.m)];
+  const realVals  = [...TRAIL_REALIZED.map(d=>d.v), ...TRAIL_FORWARD.map(()=>null)];
+  const fwdVals   = [...TRAIL_REALIZED.map(()=>null), ...TRAIL_FORWARD.map(d=>d.v)];
+  // bridge: last realized value at first forward position
+  fwdVals[TRAIL_REALIZED.length-1] = TRAIL_REALIZED[TRAIL_REALIZED.length-1].v;
+
+  new Chart(ctx, {
+    type:"line",
+    data:{
+      labels:allMonths,
+      datasets:[
+        {label:"Realized Trail (₹L/mo)", data:realVals, borderColor:"#1a56db", backgroundColor:"#1a56db18", borderWidth:2.5, tension:0.3, pointRadius:3, fill:true},
+        {label:"Forward Projection (₹L/mo)", data:fwdVals, borderColor:"#16a34a", backgroundColor:"#16a34a18", borderWidth:2.5, tension:0.3, pointRadius:3, borderDash:[5,4], fill:true},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:"index",intersect:false},
+      spanGaps:false,
+      plugins:{legend:{position:"top",labels:{usePointStyle:true,font:{size:11}}},
+        tooltip:{callbacks:{label:c=>c.parsed.y!=null?`${c.dataset.label}: ₹${c.parsed.y.toFixed(1)} L/mo`:""}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:9},maxRotation:45}},
+        y:{beginAtZero:true,ticks:{callback:v=>`₹${v}L`,font:{size:10}},grid:{color:"#f0f0f4"}}
+      }
+    }
+  });
+})();
+
+// RM Growth
+(function(){
+  const ctx = document.getElementById("rmGrowthChart").getContext("2d");
+  new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels:RM_GROWTH.map(d=>d.p),
+      datasets:[{
+        label:"Active RMs",
+        data:RM_GROWTH.map(d=>d.rms),
+        backgroundColor:["#cbd5e1","#93c5fd","#60a5fa","#1a56db"],
+        borderRadius:6, borderSkipped:false,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>`${c.parsed.y} RMs active`}}},
+      scales:{
+        x:{grid:{display:false}},
+        y:{beginAtZero:true,max:80,grid:{color:"#f0f0f4"},ticks:{stepSize:20}}
+      }
+    }
+  });
+})();
+
+// ── TABLES ────────────────────────────────────────────────────────────────────
+
+function fmtCr(v){ return v===0?"—":`₹${Math.abs(v).toFixed(2)} Cr`; }
+function fmtL(v){ return v===0?"—":`₹${v.toFixed(1)} L`; }
+function pct(to,ti){ return ti===0?"—":`${(to/ti*100).toFixed(1)}%`; }
+
+// ML Table
+const totalFwdTrail = ML_DATA.filter(d=>d.trail>0).reduce((s,d)=>s+d.trail,0);
+function buildMLTable(){
+  const tbody = document.getElementById("mlTableBody");
+  const sorted = [...ML_DATA].sort((a,b)=>b.net-a.net);
+  let html="";
+  sorted.forEach((d,i)=>{
+    const churn = d.ti>0?(d.to/d.ti*100).toFixed(1):"0.0";
+    let signal="";
+    if(d.ml.includes("Unallocated") && d.net<0)        signal=`<span class="neg">⚠ Audit needed</span>`;
+    else if(parseFloat(churn)>10)                       signal=`<span class="neg">⚑ High churn</span>`;
+    else if(d.net>100)                                  signal=`<span class="pos">★ Top performer</span>`;
+    else if(d.net>50)                                   signal=`<span class="pos">↑ Strong</span>`;
+    else if(d.net===0)                                  signal=`<span class="flag-neutral">⊘ Inactive</span>`;
+    else                                                signal=`<span class="flag-neutral">· Steady</span>`;
+    html+=`<tr>
+      <td><span class="rank">${i+1}</span></td>
+      <td><strong>${d.ml}</strong></td>
+      <td class="${d.net<0?'neg':'flag-positive'}">${fmtCr(d.net)}</td>
+      <td>${fmtCr(d.ti)}</td>
+      <td class="${d.to>5?'neg':''}">${d.to>0?fmtCr(d.to):"—"}</td>
+      <td class="${parseFloat(churn)>10?'neg':''}">${churn}%</td>
+      <td>${d.rms}</td>
+      <td>${fmtL(d.trail)}</td>
+      <td>${signal}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+// RM Table
+function buildRMTable(){
+  const tbody = document.getElementById("rmTableBody");
+  const maxNet = Math.max(...RM_TOP20.map(d=>d.net));
+  let html="";
+  RM_TOP20.forEach((d,i)=>{
+    const barW = Math.round(d.net/maxNet*100);
+    html+=`<tr>
+      <td><span class="rank">${i+1}</span></td>
+      <td>${d.ml}</td>
+      <td><strong>${d.rm}</strong></td>
+      <td class="flag-positive">${fmtCr(d.net)}</td>
+      <td>${fmtCr(d.ti)}</td>
+      <td class="${d.to>4?'neg':''}">${d.to>0?fmtCr(d.to):"—"}</td>
+      <td>${d.trail>0?fmtL(d.trail):"—"}</td>
+      <td>
+        <div class="bar-cell">
+          <div class="mini-bar" style="width:90px;background:#e2e8f0;">
+            <div class="mini-bar-fill" style="width:${barW}%;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--muted);">${barW}%</span>
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+// Trail by ML
+function buildTrailTable(){
+  const tbody = document.getElementById("trailTableBody");
+  const sorted = ML_DATA.filter(d=>d.trail>0).sort((a,b)=>b.trail-a.trail);
+  const total = sorted.reduce((s,d)=>s+d.trail,0);
+  const maxT = sorted[0].trail;
+  let html="", cum=0;
+  sorted.forEach((d,i)=>{
+    cum+=d.trail;
+    const pctShare = (d.trail/total*100).toFixed(1);
+    const barW = Math.round(d.trail/maxT*100);
+    html+=`<tr>
+      <td><span class="rank">${i+1}</span></td>
+      <td><strong>${d.ml}</strong></td>
+      <td>${fmtL(d.trail)}</td>
+      <td>
+        <span style="font-weight:600;">${pctShare}%</span>
+        <span style="font-size:10px;color:var(--muted);margin-left:6px;">cum: ${(cum/total*100).toFixed(0)}%</span>
+      </td>
+      <td>
+        <div class="bar-cell">
+          <div class="mini-bar" style="width:120px;background:#dcfce7;">
+            <div class="mini-bar-fill" style="width:${barW}%;background:#16a34a;"></div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody.innerHTML=html;
+}
+
+// ── SORT ──────────────────────────────────────────────────────────────────────
+const _sortState={};
+function sortTable(tblId, colIdx, type){
+  const tbl = document.getElementById(tblId);
+  const dir = (_sortState[tblId+colIdx]==='asc')?'desc':'asc';
+  _sortState[tblId+colIdx]=dir;
+  const rows=[...tbl.querySelector("tbody").rows];
+  rows.sort((a,b)=>{
+    let av=a.cells[colIdx].innerText.replace(/[₹,Cr L%⚠↑★⊘·⚑→]/g,'').trim();
+    let bv=b.cells[colIdx].innerText.replace(/[₹,Cr L%⚠↑★⊘·⚑→]/g,'').trim();
+    if(type==='num'){ av=parseFloat(av)||0; bv=parseFloat(bv)||0; return dir==='asc'?av-bv:bv-av; }
+    return dir==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+  });
+  const tbody=tbl.querySelector("tbody");
+  rows.forEach(r=>tbody.appendChild(r));
+}
+
+buildMLTable();
+buildRMTable();
+buildTrailTable();
+</script>
+</body>
+</html>
